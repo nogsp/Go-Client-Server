@@ -1,6 +1,7 @@
 package main
 
 import (
+	//"fmt"
 	"log"
 	"net"
 	"os"
@@ -9,7 +10,7 @@ import (
 
 const (
 	HOST = "localhost"
-	PORT = "8080"
+	PORT = "8081"
 	TYPE = "tcp"
 )
 
@@ -19,8 +20,9 @@ func main() {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-	// close listener
 	defer listen.Close()
+
+	println("Servidor pronto para receber mensagens TCP.")
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
@@ -31,9 +33,6 @@ func main() {
 	}
 
 }
-func add(a int, b int) int {
-	return a + b
-}
 
 func handleRequest(conn net.Conn) {
 	// incoming request
@@ -43,6 +42,16 @@ func handleRequest(conn net.Conn) {
 		log.Fatal(err)
 	}
 	n, err := strconv.Atoi(string(buffer[:bytesRead]))
+
+	//fmt.Printf("Recebido de %s: %d\n", conn.LocalAddr().String(), n)
+	// write data to response
+	conn.Write([]byte(strconv.Itoa(fibo(n))))
+
+	// close conn
+	conn.Close()
+}
+
+func fibo(n int) int {
 	ans := 1
 	prev := 0
 	for i := 1; i < n; i++ {
@@ -50,11 +59,5 @@ func handleRequest(conn net.Conn) {
 		ans = ans + prev
 		prev = temp
 	}
-
-	//fmt.Println(ans)
-	// write data to response
-	conn.Write([]byte(strconv.Itoa(ans)))
-
-	// close conn
-	conn.Close()
+	return ans
 }
