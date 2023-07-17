@@ -15,4 +15,4 @@ Go Server &amp; client application using TCP and UDP api
   ./run_clientsUDP.sh //for UDP clients
 
   To storage logs:
-    Each client(TCP or UDP) adds their average execution time to a txt file(log-meanTime-TCPClients.txt and log-meanTime-UDPClients.txt)
+    Each client(TCP or UDP) adds their average execution time to a txt file(log-meanTime-TCPClients.txt and log-meanTime-UDPClients.txt).
