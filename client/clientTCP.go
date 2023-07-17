@@ -2,6 +2,8 @@ package main
 
 import (
 	"container/list"
+	"fmt"
+	"log"
 
 	"math"
 	"math/rand"
@@ -60,9 +62,18 @@ func main() {
 		//time.Sleep(time.Second)
 	}
 	println("Tempo total:", time.Since(aplication_time).Seconds())
-	println("Tempo medio:", calculate_mean(arr_times))
+	mean := calculate_mean(arr_times)
+	println("Tempo medio:", mean)
 	println("Desvio padrao:", calculate_deviation(arr_times))
 	println()
+	file, err := os.OpenFile("log-meanTime-TCPClients.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	_, err = file.WriteString(fmt.Sprintln(mean))
+	if err != nil {
+		log.Fatalf("failed writing to file: %s", err)
+	}
 	//println("Desvio padrao:", calculate_deviation(&arr_times))
 }
 
