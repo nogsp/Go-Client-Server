@@ -30,12 +30,14 @@ func main() {
 	arr_times := list.New()
 	total_iterations := 10000
 	aplication_time := time.Now()
+
+	conn, err := net.DialTCP(TYPE, nil, tcpServer)
+	if err != nil {
+		println("Dial failed:", err.Error())
+		os.Exit(1)
+	}
+
 	for iteration := 0; iteration < total_iterations; iteration++ {
-		conn, err := net.DialTCP(TYPE, nil, tcpServer)
-		if err != nil {
-			println("Dial failed:", err.Error())
-			os.Exit(1)
-		}
 		num := strconv.Itoa(rand.Intn(80))
 
 		start_time := time.Now()
@@ -57,10 +59,9 @@ func main() {
 
 		//fmt.Printf("Fibo for %s is %s\n", num, string(received))
 		//fmt.Printf("Took %f second\n", total_time.Seconds())
-
-		conn.Close()
 		//time.Sleep(time.Second)
 	}
+	conn.Close()
 	println("Tempo total:", time.Since(aplication_time).Seconds())
 	mean := calculate_mean(arr_times)
 	println("Tempo medio:", mean)
