@@ -7,7 +7,9 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -17,6 +19,8 @@ import (
 const SampleSize = 10000
 const RequestQueue = "request_queue"
 const ResponseQueue = "response_queue"
+
+var m runtime.MemStats
 
 type Message struct {
 	Num int
@@ -48,6 +52,32 @@ func calculate_mean(l *list.List) float64 {
 		}
 	}
 	return float64(total / float64(l.Len()))
+}
+
+func getCPUSample() (idle, total uint64) {
+	contents, err := os.ReadFile("/proc/stat")
+	if err != nil {
+		return
+	}
+	lines := strings.Split(string(contents), "\n")
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if fields[0] == "cpu" {
+			numFields := len(fields)
+			for i := 1; i < numFields; i++ {
+				val, err := strconv.ParseUint(fields[i], 10, 64)
+				if err != nil {
+					fmt.Println("Error: ", i, fields[i], err)
+				}
+				total += val // tally up all the numbers to get total ticks
+				if i == 4 {  // idle is the 5th field in the cpu line
+					idle = val
+				}
+			}
+			return
+		}
+	}
+	return
 }
 
 func main() {
@@ -85,8 +115,12 @@ func main() {
 	failOnError(err, "Failed to create response queue's consumer")
 
 	arr_times := list.New()
+	arr_mems := list.New()
 
 	fmt.Println("Producer is ready!")
+
+	//get initial CPU informations
+	idle0, total0 := getCPUSample()
 
 	//send the message
 	for i := 0; i < SampleSize; i++ {
@@ -123,11 +157,50 @@ func main() {
 		arr_times.PushBack(total_time.Seconds()) //store the time
 
 		fmt.Println("Publisher[Default]:", msg.Num)
-	}
 
+		//get the Memory obtained from Sys(MiB)
+		runtime.ReadMemStats(&m)
+		arr_mems.PushBack(float64(m.Sys) / 1024 / 1024)
+		//fmt.Println("Memory obtained from Sys =", m.Sys/1024/1024, "MiB")
+	}
+	//get the final CPU informations
+	idle1, total1 := getCPUSample()
+	//to calculate CPU Usage
+	idleTicks := float64(idle1 - idle0)
+	totalTicks := float64(total1 - total0)
+	cpuUsage := 100 * (totalTicks - idleTicks) / totalTicks
+
+	//fmt.Printf("CPU usage is %f%% [busy: %f, total: %f]\n", cpuUsage, totalTicks-idleTicks, totalTicks)
+
+	//save the cpu Usage
+	file, err := os.OpenFile("log-CPUUsage-RabbitMQProducers.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	failOnError(err, "failed creating file")
+	_, err = file.WriteString(fmt.Sprintln(cpuUsage))
+	failOnError(err, "failed writing to file")
+
+	//save the mean time
 	mean := calculate_mean(arr_times)
-	file, err := os.OpenFile("log-meanTime-RabbitMQProducers.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err = os.OpenFile("log-meanTime-RabbitMQProducers.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	failOnError(err, "failed creating file")
+	_, err = file.WriteString(fmt.Sprintln(mean))
+	failOnError(err, "failed writing to file")
+
+	//save the mean memory obtained from CPU
+	mean = calculate_mean(arr_mems)
+	file, err = os.OpenFile("log-meanMemSys-RabbitMQProducers.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	failOnError(err, "failed creating file")
 	_, err = file.WriteString(fmt.Sprintln(mean))
 	failOnError(err, "failed writing to file")
 }
+
+/*var m runtime.MemStats
+runtime.ReadMemStats(&m)
+//fmt.Printf("\tMemory obtained from Sys = %v MiB", m.Sys/1024/1024)
+fmt.Println("Memory obtained from Sys =", m.Sys/1024/1024, "MiB")*/
+
+/*var m runtime.MemStats
+runtime.ReadMemStats(&m)
+fmt.Printf("Alloc = %v MiB", m.Alloc/1024/1024)
+fmt.Printf("\tTotalAlloc = %v MiB", m.TotalAlloc/1024/1024)
+fmt.Printf("\tSys = %v MiB", m.Sys/1024/1024)
+fmt.Printf("\tNumGC = %v\n", m.NumGC)*/
