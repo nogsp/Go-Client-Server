@@ -79,7 +79,7 @@ func main() {
 
 		//process request
 		replymsgBytes, err := json.Marshal(fibo(msg.Num))
-		//fmt.Println(fibo(msg.Num), msg.Num)
+		fmt.Println(msg.Num, fibo(msg.Num))
 		failOnError(err, "Failed to serialize the message")
 
 		//send(publish) response
