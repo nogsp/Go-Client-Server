@@ -35,7 +35,7 @@ func fibo(n int) int {
 
 func main() {
 	//connect to broker
-	conn, err := amqp.Dial("amqp://guest:guest@172.17.0.3:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@172.17.0.2:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -79,7 +79,7 @@ func main() {
 
 		//process request
 		replymsgBytes, err := json.Marshal(fibo(msg.Num))
-		//fmt.Println(fibo(msg.Num), msg.Num)
+		fmt.Println(fibo(msg.Num), msg.Num)
 		failOnError(err, "Failed to serialize the message")
 
 		//send(publish) response

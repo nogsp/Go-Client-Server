@@ -9,18 +9,12 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
-// MQTT
-const MQTTHost = "mqtt://172.17.0.3:1883"
+const MQTTHost = "tcp://172.17.0.3:1883"
 const MQTTTopic = "PubSub"
-const MQTTRequest = "request"
-const MQTTReply = "reply"
-
-// Other configurations
-const SampleSize = 10000
 
 type Message struct {
-	Msg string
-	Pid int
+	Msg string `json:"msg"`
+	Pid int    `json:"pid"`
 }
 
 func failOnError(err error, msg string) {
@@ -30,72 +24,72 @@ func failOnError(err error, msg string) {
 }
 
 func fibo(n int) int {
-	ans := 1
-	prev := 0
-	for i := 1; i < n; i++ {
-		temp := ans
-		ans = ans + prev
-		prev = temp
+	if n <= 0 {
+		return 0
+	} else if n == 1 {
+		return 1
 	}
-	return ans
+	a, b := 0, 1
+	for i := 2; i <= n; i++ {
+		a, b = b, a+b
+	}
+	return b
 }
 
 var callback MQTT.MessageHandler = func(c MQTT.Client, m MQTT.Message) {
-	//process the message
 	num, err := strconv.Atoi(string(m.Payload()))
-	failOnError(err, "It was not possible to convert string to int")
-	fmt.Println("Mensagem Recebida:", m.Payload(), "\tTopic:", m.Topic())
+	failOnError(err, "Failed to convert string to int")
+
+	fmt.Println("Received Message:", m.Payload(), "\tTopic:", m.Topic())
+
 	var msg Message
 	err = json.Unmarshal(m.Payload(), &msg)
-	failOnError(err, "It was not possible to do deserialization")
+	failOnError(err, "Failed to deserialize")
 	msg.Msg = strconv.Itoa(fibo(num))
 
-	//configure client
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(MQTTHost)
 	opts.SetClientID("publisher")
 
-	//Create client
 	client := MQTT.NewClient(opts)
-
-	//connect to the broker
 	token := client.Connect()
 	token.Wait()
 	failOnError(token.Error(), "Failed to connect to the broker")
 
+	payload, err := json.Marshal(msg)
+	failOnError(err, "Failed to marshal message")
+
 	client.Publish(
-		MQTTTopic+"/"+strconv.Itoa(msg.Pid), //Topic
-		2,                                   //Quality of Service
-		false,                               //retained
-		msg,                                 //payload
+		MQTTTopic+"/"+strconv.Itoa(msg.Pid),
+		2,
+		false,
+		payload,
 	)
 	client.Disconnect(250)
 }
 
 func main() {
-	//configure client
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(MQTTHost)
 	opts.SetClientID("subscriber 0")
 
-	//Create client
 	client := MQTT.NewClient(opts)
-
-	//connect to the broker
 	token := client.Connect()
 	token.Wait()
 	failOnError(token.Error(), "Failed to connect to the broker")
 
-	//Disconnect to the broker
 	defer client.Disconnect(250)
 
 	token = client.Subscribe(
-		MQTTTopic, //Topic
-		2,         //Quality of Service
-		callback,  //callback
+		MQTTTopic,
+		2,
+		callback,
 	)
 	token.Wait()
-	failOnError(token.Error(), "Failed to subscribe in topic")
+	failOnError(token.Error(), "Failed to subscribe to topic")
 
 	fmt.Println("Consumer starts")
+
+	// Wait indefinitely
+	select {}
 }

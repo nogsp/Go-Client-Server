@@ -52,7 +52,7 @@ func calculate_mean(l *list.List) float64 {
 
 func main() {
 	//connect to broker
-	conn, err := amqp.Dial("amqp://guest:guest@172.17.0.3:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@172.17.0.2:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -96,7 +96,7 @@ func main() {
 
 		//serialize
 		msgBytes, err := json.Marshal(msg)
-		//fmt.Println(string(msgBytes), msg)
+		fmt.Println(string(msgBytes), msg)
 		failOnError(err, "Failed to serialize the message")
 
 		correlationID := RandomString(32)
