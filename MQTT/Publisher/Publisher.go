@@ -15,6 +15,7 @@ import (
 
 const MQTTHost = "mqtt://172.17.0.5:1883"
 const MQTTTopic = "Fibonacci"
+const QoS = 0
 
 type Message struct {
 	Msg string `json:"msg"`
@@ -88,7 +89,7 @@ func main() {
 	}
 
 	// Subscreve para a resposta
-	if token := client.Subscribe(MQTTTopic+"/"+clientID, 2, receiveHandler); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe(MQTTTopic+"/"+clientID, QoS, receiveHandler); token.Wait() && token.Error() != nil {
 		fmt.Println(token.Error())
 		os.Exit(1)
 	}
@@ -111,7 +112,7 @@ func main() {
 		}
 
 		// Publicar a mensagem
-		token := client.Publish(MQTTTopic, 2, false, jmsg)
+		token := client.Publish(MQTTTopic, QoS, false, jmsg)
 		start = time.Now()
 		token.Wait()
 		if token.Error() != nil {
