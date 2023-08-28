@@ -8,7 +8,7 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
-const MQTTHost = "tcp://0.0.0.0:1883"
+const MQTTHost = "mqtt://172.17.0.5:1883"
 const MQTTTopic = "Fibonacci"
 
 type Message struct {
@@ -33,13 +33,13 @@ func main() {
 	}
 
 	//Subscreve ao tópico e definir handler
-	token = client.Subscribe(MQTTTopic, 0, func(c MQTT.Client, m MQTT.Message) {
+	token = client.Subscribe(MQTTTopic, 2, func(c MQTT.Client, m MQTT.Message) {
 		var msg Message
 		json.Unmarshal(m.Payload(), &msg)
 		ans := fmt.Sprintf("Mensagem recebida, o fibo de %s eh %s\n", msg.Msg, fibo(msg.Msg))
 		fmt.Printf("Mensagem recebida, o fibo de %s eh %s\n", msg.Msg, fibo(msg.Msg))
 
-		token := client.Publish(MQTTTopic+"/publisher_"+string(msg.Pid), 2, false, ans)
+		token := client.Publish(MQTTTopic+"/publisher_"+fmt.Sprint(msg.Pid), 2, false, ans)
 		token.Wait()
 		if token.Error() != nil {
 			panic(token.Error())
