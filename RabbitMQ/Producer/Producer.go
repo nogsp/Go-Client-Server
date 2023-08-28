@@ -125,7 +125,7 @@ func main() {
 	//send the message
 	for i := 0; i < SampleSize; i++ {
 		msg := Message{
-			Num: i,
+			Num: i % 50,
 		}
 
 		//serialize
